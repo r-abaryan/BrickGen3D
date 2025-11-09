@@ -29,6 +29,9 @@ def train_diffusion(
     diffusion = VoxelDiffusion(model, num_steps=50, device=device)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     
+    print("⚠ Note: Architecture changed. Starting fresh training.")
+    print("   Old checkpoints incompatible - delete checkpoints/diffusion_*.pth if needed")
+    
     # Dataset
     dataset = SimpleShapeDataset(num_samples=num_train_samples, voxel_size=32)
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=0)
@@ -48,16 +51,19 @@ def train_diffusion(
             with torch.no_grad():
                 text_emb = text_encoder.encode(texts).to(device)
             
-            # Random timestep
-            t = torch.randint(0, diffusion.num_steps, (voxels.shape[0],), device=device)
+            # Random timestep (sample uniformly)
+            t = torch.randint(0, diffusion.num_steps, (voxels.shape[0],), device=device, dtype=torch.long)
             
             # Add noise
             noisy_voxels, noise = diffusion.add_noise(voxels, t)
             
-            # Predict noise
+            # Predict noise (ensure text_emb is properly shaped)
+            if text_emb.shape[0] != voxels.shape[0]:
+                text_emb = text_emb[0].unsqueeze(0).expand(voxels.shape[0], -1)
+            
             predicted_noise = model(noisy_voxels, t, text_emb)
             
-            # Loss
+            # Loss: Compare predicted noise to actual noise
             loss = torch.nn.functional.mse_loss(predicted_noise, noise)
             
             # Backward
