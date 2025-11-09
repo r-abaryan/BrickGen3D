@@ -59,3 +59,4 @@ generated_models/
 logs/
 *.log
 
+visualize_architecture.py

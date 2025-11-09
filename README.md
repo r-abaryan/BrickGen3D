@@ -70,21 +70,33 @@ python src/dataset.py
 
 ## 🎯 Quick Start
 
-### Option 1: Train Your Own Model (Recommended)
+### Train Model
 
 ```bash
-# Train the model (takes ~10-15 minutes on CPU, ~2-3 minutes on GPU)
-python train.py
+# Basic model (10-15 min CPU, 2-3 min GPU)
+python train/train.py
 
-# Generate a 3D model
-python generate.py --text "a large blue cube" --output my_cube.stl
+# Diffusion model
+python train/train_diffusion.py
+
+# GNN model
+python train/train_gnn.py
 ```
 
-### Option 2: Generate Without Training (Random Output)
+### Generate Models
 
 ```bash
-# This will work but produce random shapes (model is untrained)
-python generate.py --text "a red pyramid" --output test.stl
+# Basic model
+python generate.py --text "a cube" --output cube.stl
+
+# Diffusion (higher quality)
+python generate_diffusion.py --text "a cube" --output cube.stl
+
+# GNN (mesh generation)
+python generate_gnn.py --text "a cube" --output cube.stl
+
+# Open3D (better mesh processing)
+python generate_open3d.py --text "a cube" --output cube.stl --smooth
 ```
 
 ## 📚 How It Works
@@ -131,31 +143,18 @@ Text Input → Text Encoder → Voxel Generator → 3D Model
 
 ## 🎓 Training
 
-### Basic Training
-
 ```bash
-python train.py
+# Basic model
+python train/train.py
+
+# Diffusion model
+python train/train_diffusion.py
+
+# GNN model
+python train/train_gnn.py
 ```
 
-This will:
-- Create 5,000 training samples (synthetic shapes)
-- Train for 50 epochs (~10-15 minutes on CPU)
-- Save checkpoints to `checkpoints/`
-- Generate training curves in `checkpoints/training_curves.png`
-
-### Training Parameters
-
-Edit `train.py` to customize:
-
-```python
-trainer.train(
-    num_epochs=50,          # More epochs = better results (try 100)
-    batch_size=64,          # Increase if you have GPU memory
-    num_train_samples=5000, # More samples = more variety
-    num_val_samples=500,
-    save_dir='checkpoints'
-)
-```
+Training saves checkpoints to `checkpoints/`. Edit training scripts to adjust epochs, batch size, etc.
 
 ### What to Expect
 
@@ -173,43 +172,21 @@ trainer.train(
 
 ## 🎨 Generating Models
 
-### Basic Usage
-
 ```bash
-python generate.py --text "a large red cube"
+# Basic
+python generate.py --text "a cube" --output cube.stl
+
+# Diffusion (higher quality)
+python generate_diffusion.py --text "a cube" --output cube.stl
+
+# GNN (mesh generation)
+python generate_gnn.py --text "a cube" --output cube.stl
+
+# Open3D (smooth mesh)
+python generate_open3d.py --text "a cube" --output cube.stl --smooth
 ```
 
-### Advanced Options
-
-```bash
-# Generate with LEGO style
-python generate.py --text "a small pyramid" --lego_style --output pyramid.stl
-
-# Export to OBJ format
-python generate.py --text "a blue sphere" --output sphere.obj --format obj
-
-# Don't show visualization (faster)
-python generate.py --text "a cylinder" --no_show --output cylinder.stl
-
-# Adjust voxel threshold (lower = more voxels)
-python generate.py --text "a cube" --threshold 0.3 --output dense_cube.stl
-
-# Save interactive HTML visualization
-python generate.py --text "a cone" --save_html visualization.html
-```
-
-### Command-Line Arguments
-
-| Argument | Description | Default |
-|----------|-------------|---------|
-| `--text, -t` | Text description (required) | - |
-| `--checkpoint, -c` | Path to model checkpoint | `checkpoints/best_model.pth` |
-| `--output, -o` | Output file path | Auto-generated |
-| `--format, -f` | Export format (stl/obj/ply) | `stl` |
-| `--lego_style, -l` | Use LEGO brick style | `False` |
-| `--threshold` | Voxel occupancy threshold | `0.5` |
-| `--no_show` | Don't show visualization | `False` |
-| `--save_html` | Save HTML visualization | `None` |
+All scripts support `--text`, `--output`, `--checkpoint`, `--threshold` flags.
 
 ## 🏗️ Architecture Details
 
@@ -269,167 +246,55 @@ These are **design choices** to keep the project:
 - **Fast**: Trains in minutes, not days
 - **Lightweight**: Runs on CPU, no expensive GPU needed
 
-## 🚀 Future Improvements
+## 🚀 Improvements
 
-### Easy Improvements (You Can Try!)
-
-1. **Increase Resolution**: Change `voxel_size=32` to `64` (slower but more detail)
-2. **More Epochs**: Train for 100-200 epochs instead of 50
-3. **Larger Hidden Dimensions**: Increase `hidden_dim=512` to `1024`
-4. **Better Dataset**: Use real 3D models from ShapeNet or Objaverse
-
-### Advanced Improvements
-
-1. **Diffusion Models**: Use denoising diffusion for better quality
-2. **Color Generation**: Add RGB values to each voxel
-3. **Multi-View Generation**: Generate from multiple angles
-4. **Image-to-3D**: Add image encoder alongside text encoder
-5. **Conditional Generation**: Control size, orientation, style separately
-6. **VAE/GAN Architecture**: For more diverse outputs
-
-### Using Real Datasets
-
-**ShapeNet** (55 categories, 51K models):
-```python
-# Download ShapeNet and modify dataset.py
-# Convert meshes to voxels using trimesh.voxel
-```
-
-**Objaverse** (800K+ models):
-```python
-# Use objaverse library
-import objaverse
-objects = objaverse.load_objects()
-```
+- Increase `voxel_size=64` for higher resolution
+- Train longer (100+ epochs)
+- Use real datasets (ShapeNet, Objaverse)
+- Add color/texture generation
 
 ## 🔧 Troubleshooting
 
-### Issue: "Checkpoint not found"
-
-**Solution**: Train the model first:
-```bash
-python train.py
-```
-
-### Issue: "CUDA out of memory"
-
-**Solution**: Reduce batch size in `train.py`:
-```python
-batch_size=8  # or even 4
-```
-
-### Issue: "Generated models look random"
-
-**Possible causes:**
-1. Model not trained yet → Run `python train.py`
-2. Not trained long enough → Increase epochs to 100
-3. Text description too complex → Try simple shapes first
-
-### Issue: "Trimesh import error"
-
-**Solution**:
-```bash
-pip install trimesh --no-deps
-pip install numpy networkx pillow
-```
-
-### Issue: "Generated models are empty"
-
-**Solution**: Lower the threshold:
-```bash
-python generate.py --text "..." --threshold 0.3
-```
-
-### Issue: Slow training
-
-**Tips:**
-- Use GPU if available (automatic)
-- Reduce `num_train_samples` to 2000
-- Reduce `batch_size` (doesn't affect speed much)
-- Use fewer epochs for testing
+- **Checkpoint not found**: Train with `python train/train.py`
+- **Out of memory**: Reduce `batch_size` in training scripts
+- **Random output**: Model needs training or more epochs
+- **Empty models**: Lower `--threshold` (e.g., 0.3)
+- **Trimesh error**: `pip install trimesh --no-deps && pip install numpy networkx`
 
 ## 📁 Project Structure
 
 ```
 BrickGen3D/
-├── src/
-│   ├── __init__.py
+├── src/                      # Core modules
 │   ├── text_encoder.py       # Text → embeddings
-│   ├── voxel_generator.py    # Core model (text → voxels)
-│   ├── dataset.py            # Synthetic shape dataset
-│   └── voxel_utils.py        # Visualization & export
-├── train.py                  # Training script
-├── generate.py               # Generation script
-├── requirements.txt          # Dependencies
-├── README.md                 # This file
-├── .gitignore
-├── checkpoints/              # Saved models (created during training)
-│   ├── best_model.pth
-│   ├── final_model.pth
-│   └── training_curves.png
-└── outputs/                  # Generated 3D models (created during generation)
-    ├── model1.stl
-    └── model2.obj
+│   ├── voxel_generator.py    # Basic model
+│   ├── diffusion_model.py   # Diffusion model
+│   ├── gnn_model.py         # GNN model
+│   ├── dataset.py           # Training data
+│   ├── voxel_utils.py       # Basic utilities
+│   └── open3d_utils.py      # Open3D utilities
+├── train/                    # Training scripts
+│   ├── train.py             # Basic model
+│   ├── train_diffusion.py   # Diffusion
+│   └── train_gnn.py         # GNN
+├── generate.py              # Basic generation
+├── generate_diffusion.py    # Diffusion generation
+├── generate_gnn.py          # GNN generation
+├── generate_open3d.py       # Open3D generation
+├── test_models.py           # Test scripts
+├── checkpoints/             # Saved models
+└── outputs/                 # Generated files
 ```
 
-## 🎓 Learning Resources
+## 📚 Key Concepts
 
-### Understanding the Code
+- **Voxel**: 3D pixel (like Minecraft blocks)
+- **Embedding**: Text → numerical representation
+- **Training**: Model learns text → shape mapping
+- **Generation**: Text → 3D model
 
-Each module has extensive comments explaining:
-- **What** the code does
-- **Why** we made this design choice
-- **How** it fits into the bigger picture
+See `other/` folder for detailed educational docs.
 
-Start here:
-1. `src/text_encoder.py` - Simplest module
-2. `src/dataset.py` - See how training data is created
-3. `src/voxel_generator.py` - The core model
-4. `train.py` - See the training loop
-
-### Key Concepts
-
-**Voxel**: 3D pixel (volume element)
-- Like a Minecraft block
-- Either occupied (1) or empty (0)
-
-**Embedding**: Numerical representation
-- Text → numbers that capture meaning
-- Similar words have similar embeddings
-
-**Binary Cross-Entropy**: Loss function
-- Measures how wrong predictions are
-- Good for binary classification (occupied/empty)
-
-**Convolution**: Sliding window operation
-- 2D: Used in image processing
-- 3D: Used in volumetric (3D) processing
-
-### Further Reading
-
-- [PyTorch Tutorial](https://pytorch.org/tutorials/)
-- [3D Deep Learning Survey](https://arxiv.org/abs/2004.06674)
-- [Text-to-3D Methods](https://arxiv.org/abs/2303.13508)
-- [Voxel-based 3D Generation](https://arxiv.org/abs/1608.04236)
-
-## 📝 Examples
-
-### Example Prompts
-
-**Basic Shapes:**
-```
-- "a large blue cube"
-- "a small red sphere"
-- "a medium green pyramid"
-- "a yellow cylinder"
-```
-
-**Combined (after training on combined dataset):**
-```
-- "a cube on top of a sphere"
-- "two small pyramids"
-- "a tower of blocks"
-```
 
 ## 🤝 Contributing
 
@@ -440,31 +305,26 @@ This is an educational project! Feel free to:
 - Improve documentation
 - Share your results!
 
-## 🔮 Next Stage: Advanced Techniques
+## 🔮 Advanced Models
 
-Implemented extensions in `src/`:
-
-### 1. Open3D (Easy ⭐) - `src/open3d_utils.py`
+### Open3D
 ```bash
 pip install open3d
-python -c "from src.open3d_utils import voxel_to_mesh; print('✓ Ready')"
+python generate_open3d.py --text "a cube" --smooth
 ```
-**Features:** Better mesh processing, smoothing, simplification
 
-### 2. Diffusion Model (Medium ⭐⭐) - `src/diffusion_model.py`
+### Diffusion
 ```bash
-python train_diffusion.py  # Train diffusion model
+python train/train_diffusion.py
+python generate_diffusion.py --text "a cube"
 ```
-**Features:** UNet3D architecture, 50-step denoising, higher quality
 
-### 3. GNN (Advanced ⭐⭐⭐) - `src/gnn_model.py`
+### GNN
 ```bash
 pip install torch-geometric
-python train_gnn.py  # Train GNN model
+python train/train_gnn.py
+python generate_gnn.py --text "a cube"
 ```
-**Features:** Direct mesh generation, graph convolutions, better topology
-
-**All modules use the same text encoder - only generator changes!**
 
 ## 📄 License
 
@@ -486,5 +346,17 @@ If you have questions or run into issues:
 
 ---
 
-**Happy Building! 🧱🤖**
+## Citation
 
+If you use this work, please cite:
+
+```bibtex
+@software{BrickGen3D,
+  title={Generate 3D models from text descriptions using AI},
+  author={Abaryan},
+  year={2025},
+  url={https://github.com/r-abaryan/BrickGen3D}
+}
+```
+
+**Happy Building! 🧱🤖**
