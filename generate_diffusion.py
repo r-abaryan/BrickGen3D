@@ -45,13 +45,22 @@ def generate(
         print("  Using untrained model (random output)")
     
     # Generate
-    print("\nGenerating (50 diffusion steps)...")
+    print(f"\nGenerating '{text}' (50 diffusion steps)...")
+    print(f"Checkpoint: {checkpoint}")
+    
     with torch.no_grad():
         text_emb = text_encoder.encode(text).to(device)
+        
+        # Debug: Check text embedding variance
+        print(f"Text embedding mean: {text_emb.mean().item():.4f}, std: {text_emb.std().item():.4f}")
+        
         voxels = diffusion.sample(text_emb, shape=(1, 1, 32, 32, 32))
+    
+    print(f"Raw output range: [{voxels.min().item():.3f}, {voxels.max().item():.3f}]")
     
     # Apply threshold
     voxels_binary = (voxels > threshold).cpu().numpy()
+    print(f"Using threshold: {threshold}")
     
     # Stats
     print("\nVoxel Statistics:")

@@ -35,43 +35,29 @@ class ResidualBlock3D(nn.Module):
         super().__init__()
         self.conv1 = nn.Conv3d(in_channels, out_channels, 3, padding=1)
         self.conv2 = nn.Conv3d(out_channels, out_channels, 3, padding=1)
-        
-        # Conditioning embeddings
-        self.time_mlp = nn.Sequential(
-            nn.Linear(time_dim, out_channels),
-            nn.SiLU(),
-            nn.Linear(out_channels, out_channels)
-        )
-        self.text_mlp = nn.Sequential(
-            nn.Linear(text_dim, out_channels),
-            nn.SiLU(),
-            nn.Linear(out_channels, out_channels)
-        )
-        
+        self.time_mlp = nn.Linear(time_dim, out_channels)
+        self.text_mlp = nn.Linear(text_dim, out_channels)
         self.shortcut = nn.Conv3d(in_channels, out_channels, 1) if in_channels != out_channels else nn.Identity()
         self.norm1 = nn.GroupNorm(8, out_channels)
         self.norm2 = nn.GroupNorm(8, out_channels)
 
     def forward(self, x, time_emb, text_emb):
-        # First conv
         h = self.conv1(F.relu(x))
+        
+        # Add time conditioning
+        time_emb = self.time_mlp(time_emb)[:, :, None, None, None]
+        h = h + time_emb
+        
+        # Add text conditioning (scale by 1.5 for stronger influence)
+        text_emb = self.text_mlp(text_emb)[:, :, None, None, None]
+        h = h + text_emb * 1.5
+        
         h = self.norm1(h)
-        
-        # Add time conditioning (multiply, not add!)
-        t_cond = self.time_mlp(time_emb)[:, :, None, None, None]
-        h = h * (1 + t_cond)
-        
-        # Add text conditioning (multiply for stronger effect)
-        txt_cond = self.text_mlp(text_emb)[:, :, None, None, None]
-        h = h * (1 + txt_cond)
-        
-        h = F.silu(h)
-        
-        # Second conv
+        h = F.relu(h)
         h = self.conv2(h)
         h = self.norm2(h)
         
-        return F.silu(h + self.shortcut(x))
+        return F.relu(h + self.shortcut(x))
 
 
 class UNet3D(nn.Module):
@@ -146,7 +132,7 @@ class VoxelDiffusion:
         # Start from pure noise
         x = torch.randn(shape).to(self.device)
         
-        # Ensure text embedding is on device and correct shape
+        # Ensure text embedding is on correct device and shape
         if text_emb.shape[0] != shape[0]:
             text_emb = text_emb.expand(shape[0], -1)
         text_emb = text_emb.to(self.device)
