@@ -43,6 +43,9 @@ def generate(
         print(f"⚠ No checkpoint found at {checkpoint}")
         print("  Using untrained model (random output)")
     
+    # Set to eval mode
+    model.eval()
+    
     # Generate
     print("\nGenerating mesh vertices...")
     with torch.no_grad():

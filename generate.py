@@ -76,7 +76,7 @@ class BrickGen3D:
             print(f"✓ Loaded trained model from epoch {checkpoint['epoch']}")
             self.is_trained = True
         
-        self.model.eval()
+        self.model.eval()  # Set to evaluation mode
     
     def generate(self, text, threshold=0.5):
         """

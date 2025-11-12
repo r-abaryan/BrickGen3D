@@ -44,6 +44,9 @@ def generate(
         print(f"⚠ No checkpoint found at {checkpoint}")
         print("  Using untrained model (random output)")
     
+    # Set to eval mode
+    model.eval()
+    
     # Generate
     print(f"\nGenerating '{text}' (50 diffusion steps)...")
     print(f"Checkpoint: {checkpoint}")

@@ -50,6 +50,9 @@ def generate(
     else:
         print(f"⚠ No checkpoint found - using untrained model")
     
+    # Set to eval mode (important for BatchNorm!)
+    model.eval()
+    
     # Generate
     print("\nGenerating voxels...")
     with torch.no_grad():
