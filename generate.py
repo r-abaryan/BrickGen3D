@@ -111,6 +111,7 @@ class BrickGen3D:
         text,
         threshold=0.5,
         lego_style=False,
+        smooth=False,
         show=True,
         save_html=None,
         export_path=None,
@@ -154,7 +155,8 @@ class BrickGen3D:
                 voxels,
                 export_path,
                 format=export_format,
-                lego_style=lego_style
+                lego_style=lego_style,
+                smooth=smooth
             )
             print(f"✓ Model exported successfully!")
             print(f"  You can now 3D print or view this file in any 3D software")
@@ -201,6 +203,12 @@ Examples:
         '--lego_style', '-l',
         action='store_true',
         help='Use LEGO brick style with studs'
+    )
+    
+    parser.add_argument(
+        '--smooth',
+        action='store_true',
+        help='Smooth mesh (removes blocky voxel appearance)'
     )
     
     parser.add_argument(
@@ -252,6 +260,7 @@ Examples:
         text=args.text,
         threshold=args.threshold,
         lego_style=args.lego_style,
+        smooth=args.smooth,
         show=not args.no_show,
         save_html=args.save_html,
         export_path=output_path,

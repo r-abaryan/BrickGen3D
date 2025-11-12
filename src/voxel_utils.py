@@ -17,13 +17,14 @@ import plotly.graph_objects as go
 from pathlib import Path
 
 
-def voxel_to_mesh(voxel_grid, spacing=1.0):
+def voxel_to_mesh(voxel_grid, spacing=1.0, blocky=True):
     """
-    Convert a voxel grid to a 3D mesh using marching cubes.
+    Convert a voxel grid to a 3D mesh.
     
     Args:
         voxel_grid: 3D numpy array or torch tensor (binary or probability)
         spacing: Size of each voxel in the output mesh
+        blocky: If True, creates blocky voxel cubes; if False, uses smooth marching cubes
         
     Returns:
         trimesh.Trimesh: 3D mesh object
@@ -39,12 +40,31 @@ def voxel_to_mesh(voxel_grid, spacing=1.0):
     # Ensure binary (0 or 1)
     voxel_grid = (voxel_grid > 0.5).astype(np.float32)
     
-    # Use trimesh's voxel grid to mesh conversion
-    # This creates a mesh where each occupied voxel becomes a cube
-    mesh = trimesh.voxel.ops.matrix_to_marching_cubes(
-        voxel_grid,
-        pitch=spacing
-    )
+    if blocky:
+        # Create blocky voxel mesh (individual cubes)
+        meshes = []
+        for x in range(voxel_grid.shape[0]):
+            for y in range(voxel_grid.shape[1]):
+                for z in range(voxel_grid.shape[2]):
+                    if voxel_grid[x, y, z]:
+                        cube = trimesh.creation.box(
+                            extents=[spacing, spacing, spacing],
+                            transform=trimesh.transformations.translation_matrix(
+                                [x * spacing, y * spacing, z * spacing]
+                            )
+                        )
+                        meshes.append(cube)
+        
+        if meshes:
+            mesh = trimesh.util.concatenate(meshes)
+        else:
+            mesh = trimesh.Trimesh()
+    else:
+        # Use smooth marching cubes
+        mesh = trimesh.voxel.ops.matrix_to_marching_cubes(
+            voxel_grid,
+            pitch=spacing
+        )
     
     return mesh
 
@@ -176,7 +196,7 @@ def visualize_voxels(voxel_grid, title="3D Voxel Model", show=True, save_path=No
     return fig
 
 
-def export_model(voxel_grid, output_path, format='stl', lego_style=False):
+def export_model(voxel_grid, output_path, format='stl', lego_style=False, smooth=False):
     """
     Export voxel grid to 3D file format.
     
@@ -185,15 +205,23 @@ def export_model(voxel_grid, output_path, format='stl', lego_style=False):
         output_path: Path to save file
         format: File format ('stl', 'obj', 'ply')
         lego_style: Whether to use LEGO brick style
+        smooth: Whether to smooth the mesh (removes blocky voxel appearance)
         
     Returns:
         Path: Path to saved file
     """
-    # Convert to mesh
+    # Convert to mesh with different styles
     if lego_style:
+        # LEGO style: blocks with studs
         mesh = make_lego_style(voxel_grid, add_studs=True)
+    elif smooth:
+        # Smooth style: marching cubes + Laplacian smoothing
+        mesh = voxel_to_mesh(voxel_grid, blocky=False)
+        import trimesh.smoothing
+        mesh = trimesh.smoothing.filter_laplacian(mesh, iterations=5)
     else:
-        mesh = voxel_to_mesh(voxel_grid)
+        # Default: blocky voxel cubes (no studs)
+        mesh = voxel_to_mesh(voxel_grid, blocky=True)
     
     # Create output directory
     output_path = Path(output_path)
