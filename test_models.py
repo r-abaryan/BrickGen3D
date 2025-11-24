@@ -25,7 +25,7 @@ def test_diffusion():
     diffusion = VoxelDiffusion(model, num_steps=50, device=device)
     
     # Generate
-    text = "a cube"
+    text = "a pyramid"
     print(f"\nText: '{text}'")
     
     text_emb = text_encoder.encode(text).to(device)

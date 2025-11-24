@@ -42,226 +42,56 @@ Generate 3D models from text descriptions using AI, with optional LEGO brick sty
 ### Step 1: Clone or Download
 
 ```bash
-cd BrickGen3D
-```
+pip install -r requirements.txt     # PyTorch, trimesh, etc.
 
-### Step 2: Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-**Note for Windows users**: If you encounter issues with `trimesh`, you may need to install it separately:
-
-```bash
-pip install trimesh --no-deps
-pip install numpy networkx
-```
-
-### Step 3: Verify Installation
-
-Test the modules:
-
-```bash
-python src/text_encoder.py
-python src/voxel_generator.py
-python src/dataset.py
-```
-
-## 🎯 Quick Start
-
-### Train Model
-
-```bash
-# Basic model (10-15 min CPU, 2-3 min GPU)
+# Base model (~15 min CPU)
 python train/train.py
 
-# Diffusion model
-python train/train_diffusion.py
-
-# GNN model
+# Optional experiments
+python train/train_diffusion.py     # needs 150+ epochs for best quality
 python train/train_gnn.py
 ```
 
-### Generate Models
+---
+
+## Generate
 
 ```bash
-# Basic model
-python generate.py --text "a cube" --output cube.stl
+# Base generator
+python generate.py --text "a cube" --output outputs/cube.stl
 
-# Diffusion (higher quality)
-python generate_diffusion.py --text "a cube" --output cube.stl
+# Mesh styles
+python generate.py --text "a sphere" --output sphere_blocky.stl
+python generate.py --text "a sphere" --output sphere_lego.stl --lego_style
+python generate.py --text "a sphere" --output sphere_smooth.stl --smooth
 
-# GNN (mesh generation)
-python generate_gnn.py --text "a cube" --output cube.stl
-
-# Open3D (better mesh processing)
-python generate_open3d.py --text "a cube" --output cube.stl --smooth
+# Other emitters
+python generate_diffusion.py --text "a cube"
+python generate_gnn.py --text "a cube"
+python generate_open3d.py --text "a cube" --smooth
 ```
 
-## 📚 How It Works
+Shared flags: `--text`, `--output`, `--threshold`, `--checkpoint`, `--lego_style`, `--smooth`, `--no_show`.
 
-BrickGen3D uses a simple but effective pipeline:
+---
 
-```
-Text Input → Text Encoder → Voxel Generator → 3D Model
-   ↓              ↓                ↓              ↓
-"a cube"    [384D vector]    [32×32×32 grid]   🧱
-```
-
-### 1. Text Encoder
-
-- Uses pre-trained **sentence-transformers** (MiniLM model)
-- Converts text to 384-dimensional embeddings
-- **Why?** It understands semantic meaning ("large cube" vs "small box")
-- **Advantage**: No need to train a text encoder from scratch!
-
-### 2. Voxel Generator
-
-- Neural network with 3 main parts:
-  1. **MLP Expansion**: 384D → 4096D (expands the embedding)
-  2. **Reshape**: 4096D → 4×4×4 3D grid with 64 channels
-  3. **3D Convolutions**: Upsamples to 32×32×32 final grid
-
-- **Voxel Grid**: 3D grid where each cell is either occupied (1) or empty (0)
-- **Output**: 32×32×32 = 32,768 voxels (good balance of detail vs speed)
-
-### 3. Training
-
-- **Dataset**: Synthetic shapes (cubes, spheres, pyramids, etc.)
-- **Loss Function**: Binary Cross-Entropy (BCE)
-  - Compares predicted occupancy to ground truth
-  - BCE = -[y·log(p) + (1-y)·log(1-p)]
-- **Optimizer**: Adam with learning rate 0.001
-- **Training Time**: ~10-15 minutes for 50 epochs on CPU
-
-### 4. Voxelization & Export
-
-- Converts voxel grid to mesh using marching cubes
-- Optional LEGO-style conversion (adds studs, gaps between bricks)
-- Exports to STL, OBJ, or PLY formats
-
-## 🎓 Training
-
-```bash
-# Basic model
-python train/train.py
-
-# Diffusion model
-python train/train_diffusion.py
-
-# GNN model
-python train/train_gnn.py
-```
-
-Training saves checkpoints to `checkpoints/`. Edit training scripts to adjust epochs, batch size, etc.
-
-### What to Expect
-
-**After 10 epochs:**
-- Model learns basic shapes
-- Loss: ~0.15
-
-**After 50 epochs:**
-- Model generates recognizable shapes
-- Loss: ~0.08-0.10
-
-**After 100 epochs:**
-- Better detail and accuracy
-- Loss: ~0.05-0.07
-
-## 🎨 Generating Models
-
-```bash
-# Basic
-python generate.py --text "a cube" --output cube.stl
-
-# Diffusion (higher quality)
-python generate_diffusion.py --text "a cube" --output cube.stl
-
-# GNN (mesh generation)
-python generate_gnn.py --text "a cube" --output cube.stl
-
-# Open3D (smooth mesh)
-python generate_open3d.py --text "a cube" --output cube.stl --smooth
-```
-
-All scripts support `--text`, `--output`, `--checkpoint`, `--threshold` flags.
-
-## 🏗️ Architecture Details
-
-### Model Architecture
+## How It Works (TL;DR)
 
 ```
-Input: Text Embedding (384D)
-  ↓
-FC Layer 1: 384 → 512
-  ↓ (ReLU + BatchNorm + Dropout)
-FC Layer 2: 512 → 1024
-  ↓ (ReLU + BatchNorm + Dropout)
-FC Layer 3: 1024 → 4096
-  ↓ (ReLU)
-Reshape: 4096 → (64, 4, 4, 4)
-  ↓
-ConvTranspose3D 1: 64ch, 4³ → 32ch, 8³
-  ↓ (ReLU + BatchNorm)
-ConvTranspose3D 2: 32ch, 8³ → 16ch, 16³
-  ↓ (ReLU + BatchNorm)
-ConvTranspose3D 3: 16ch, 16³ → 8ch, 32³
-  ↓ (ReLU + BatchNorm)
-Conv3D 4: 8ch → 1ch (occupancy)
-  ↓ (Sigmoid)
-Output: Voxel Grid (1, 32, 32, 32)
+text --(MiniLM encoder)--> 384-D vector
+      --(MLP + 3D Conv decoder)--> 32x32x32 voxels
+      --(voxel_utils)--> STL/OBJ/PLY
 ```
 
-### Why This Architecture?
+- Dataset: procedural cubes, spheres, pyramids (`src/dataset.py`)
+- Loss: voxel-wise BCE (`train/train.py`)
+- Export styles: blocky cubes / LEGO studs / smooth marching cubes (`src/voxel_utils.py`)
+- Diffusion: iterative denoising with timestep embeddings (`src/diffusion_model.py`)
+- GNN: deform template mesh via graph convolutions (`src/gnn_model.py`)
 
-1. **MLP Expansion**: Text embeddings are abstract; we need to expand them into spatial information
-2. **3D Convolutions**: Perfect for generating 3D structures with spatial coherence
-3. **Progressive Upsampling**: Start small (4³), gradually increase detail (8³ → 16³ → 32³)
-4. **BatchNorm**: Stabilizes training, allows higher learning rates
-5. **Dropout**: Prevents overfitting (important for small datasets)
+---
 
-### Model Size
-
-- **Parameters**: ~10 million
-- **Model File**: ~40 MB
-- **Memory Usage**: ~500 MB during training
-- **Inference Speed**: ~0.1 seconds per model (on CPU)
-
-## ⚠️ Limitations
-
-### Current Limitations
-
-1. **Simple Shapes**: Works best with basic geometric shapes (cube, sphere, pyramid)
-2. **Low Resolution**: 32×32×32 voxels (1,024 total) - not high detail
-3. **Synthetic Training Data**: Only trained on procedural shapes, not real objects
-4. **No Color**: Generates shape only, not color/texture
-5. **Size Ambiguity**: "large" vs "small" is relative to training data
-
-### Why These Limitations?
-
-These are **design choices** to keep the project:
-- **Simple**: Easy to understand and modify
-- **Fast**: Trains in minutes, not days
-- **Lightweight**: Runs on CPU, no expensive GPU needed
-
-## 🚀 Improvements
-
-- Increase `voxel_size=64` for higher resolution
-- Train longer (100+ epochs)
-- Use real datasets (ShapeNet, Objaverse)
-- Add color/texture generation
-
-## 🔧 Troubleshooting
-
-- **Checkpoint not found**: Train with `python train/train.py`
-- **Out of memory**: Reduce `batch_size` in training scripts
-- **Random output**: Model needs training or more epochs
-- **Empty models**: Lower `--threshold` (e.g., 0.3)
-- **Trimesh error**: `pip install trimesh --no-deps && pip install numpy networkx`
-
-## 📁 Project Structure
+## Repo Map
 
 ```
 BrickGen3D/
@@ -313,42 +143,39 @@ pip install open3d
 python generate_open3d.py --text "a cube" --smooth
 ```
 
-### Diffusion
-```bash
-python train/train_diffusion.py
-python generate_diffusion.py --text "a cube"
+train/                   # Training entry points
+generate*.py             # Inference scripts (base, diffusion, GNN, Open3D)
+other/                   # Long-form learning docs (optional)
+checkpoints/, outputs/   # Generated weights + meshes
 ```
-
-### GNN
-```bash
-pip install torch-geometric
-python train/train_gnn.py
-python generate_gnn.py --text "a cube"
-```
-
-## 📄 License
-
-MIT License - feel free to use this project for learning and research!
-
-## 🙏 Acknowledgments
-
-- **PyTorch** - Deep learning framework
-- **sentence-transformers** - Pre-trained text encoders
-- **trimesh** - 3D mesh processing
-- **plotly** - Interactive visualization
-
-## 📧 Questions?
-
-If you have questions or run into issues:
-1. Check the [Troubleshooting](#troubleshooting) section
-2. Review the code comments (they're detailed!)
-3. Experiment with the parameters
 
 ---
 
-## Citation
+## Tips & Troubleshooting
 
-If you use this work, please cite:
+- Checkpoint missing? → run `python train/train.py`
+- Empty mesh? → lower `--threshold` (e.g., 0.3)
+- BatchNorm error? → ensure inference scripts call `model.eval()` (already handled)
+- Trimesh import issue? → `pip install trimesh --no-deps && pip install numpy networkx`
+- Diffusion stuck generating cubes? → train longer (150+ epochs) or use base model
+
+---
+
+## Learn the Concepts
+
+| Topic | File |
+|-------|------|
+| Text embeddings | `src/text_encoder.py` |
+| Voxel decoder (MLP + 3D Conv) | `src/voxel_generator.py` |
+| Diffusion blocks + timestep encoding | `src/diffusion_model.py` |
+| GNN mesh deformation | `src/gnn_model.py` |
+| Marching cubes / LEGO studs | `src/voxel_utils.py` |
+
+Long-form explanations live in `other/` (`START_HERE.md`, `CONCEPTS.md`, etc.).
+
+---
+
+## Citation & License
 
 ```bibtex
 @software{BrickGen3D,
@@ -359,4 +186,6 @@ If you use this work, please cite:
 }
 ```
 
-**Happy Building! 🧱🤖**
+MIT License. Contributions welcome.
+
+**Happy building! 🧱🤖**
