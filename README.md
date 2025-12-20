@@ -10,7 +10,7 @@ Generate 3D models from text descriptions using AI, with optional LEGO brick sty
 "a large blue cube" → 🤖 → 🧱 3D Model
 ```
 
-## 🌟 Features
+## Features
 
 - **Text-to-3D Generation**: Convert natural language descriptions to 3D voxel models
 - **Lightweight Model**: Only ~10M parameters, trains in minutes on CPU
@@ -20,7 +20,7 @@ Generate 3D models from text descriptions using AI, with optional LEGO brick sty
 - **Easy to Use**: Simple command-line interface
 - **Fully Explained**: Every part of the code is documented and explained
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Installation](#installation)
 - [Quick Start](#quick-start)
@@ -32,7 +32,7 @@ Generate 3D models from text descriptions using AI, with optional LEGO brick sty
 - [Future Improvements](#future-improvements)
 - [Troubleshooting](#troubleshooting)
 
-## 🚀 Installation
+## Installation
 
 ### Prerequisites
 
@@ -116,7 +116,7 @@ BrickGen3D/
 └── outputs/                 # Generated files
 ```
 
-## 📚 Key Concepts
+## Key Concepts
 
 - **Voxel**: 3D pixel (like Minecraft blocks)
 - **Embedding**: Text → numerical representation
@@ -126,7 +126,7 @@ BrickGen3D/
 See `other/` folder for detailed educational docs.
 
 
-## 🤝 Contributing
+## Contributing
 
 This is an educational project! Feel free to:
 - Experiment with different architectures
@@ -135,7 +135,7 @@ This is an educational project! Feel free to:
 - Improve documentation
 - Share your results!
 
-## 🔮 Advanced Models
+## Advanced Models
 
 ### Open3D
 ```bash
@@ -188,4 +188,4 @@ Long-form explanations live in `other/` (`START_HERE.md`, `CONCEPTS.md`, etc.).
 
 MIT License. Contributions welcome.
 
-**Happy building! 🧱🤖**
+**Happy building! 🧱**

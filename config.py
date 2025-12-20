@@ -51,7 +51,7 @@ TRAINING_CONFIG = {
     
     'weight_decay': 1e-5,        # L2 regularization strength
     
-    'dropout_rate': 0.3,         # Dropout probability (0.0-0.5)
+    'dropout_rate': 0.2,         # Dropout probability (0.0-0.5)
     
     # Learning rate scheduler
     'scheduler_patience': 5,     # Epochs to wait before reducing LR
@@ -185,7 +185,7 @@ def apply_preset(preset_name):
     
     if preset_name not in presets:
         print(f"Unknown preset: {preset_name}")
-        print(f"Available presets: {list(presets.keys())}")
+        print(f"Available presets: {list[str](presets.keys())}")
         return
     
     preset = presets[preset_name]
