@@ -167,7 +167,7 @@ PRESET_HIGH_QUALITY = {
 
 # High resolution preset (detailed models, slow)
 PRESET_HIGH_RES = {
-    'num_epochs': 100,
+    'num_epochs': 50,
     'num_train_samples': 8000,
     'num_val_samples': 800,
     'voxel_size': 64,
