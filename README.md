@@ -77,5 +77,3 @@ other/            # Educational docs
   url={https://github.com/r-abaryan/BrickGen3D}
 }
 ```
-
-**Happy building! 🧱**
